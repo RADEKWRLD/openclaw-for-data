@@ -222,43 +222,55 @@ def cmd_query(args: argparse.Namespace) -> None:
 
 
 def cmd_run(args: argparse.Namespace) -> None:
-    """One-shot workflow: import Excel(s) → generate charts + xlsx → print report."""
+    """One-shot workflow: [scrape →] parse → charts + xlsx → report."""
     from .excel_import import import_excel, import_multiple_excels
     from .models import get_data_dir
     from .visualization import export_xlsx, generate_charts_by_sheet
 
     types = [t.strip() for t in args.types.split(",")] if args.types else None
     output_dir = get_data_dir(args.output, args.city)
-
-    # ── Step 1: Import ──
-    excel_paths = args.excel if isinstance(args.excel, list) else [args.excel]
     sheet = args.sheet or "all"
 
-    if len(excel_paths) == 1:
-        data = import_excel(
-            excel_path=excel_paths[0],
-            city=args.city,
-            month=args.period if args.period and "~" not in args.period else None,
-            sheet_name=sheet,
-            types=types,
-            category=args.category,
-        )
+    if args.excel:
+        # ── 有 Excel：直接分析 ──
+        excel_paths = args.excel
+        if len(excel_paths) == 1:
+            data = import_excel(
+                excel_path=excel_paths[0],
+                city=args.city,
+                month=args.period if args.period and "~" not in args.period else None,
+                sheet_name=sheet,
+                types=types,
+                category=args.category,
+            )
+        else:
+            data = import_multiple_excels(
+                excel_paths=excel_paths,
+                city=args.city,
+                sheet_name=sheet,
+                types=types,
+                category=args.category,
+            )
     else:
-        data = import_multiple_excels(
-            excel_paths=excel_paths,
+        # ── 无 Excel：自动爬取 ──
+        from .scraper import scrape_prices
+        year, months = parse_period(args.period)
+        data = scrape_prices(
             city=args.city,
-            sheet_name=sheet,
+            year=year,
+            months=months,
             types=types,
             category=args.category,
+            data_dir=args.output,
         )
 
     json_path = data.save(output_dir)
 
-    # ── Step 2: Charts + xlsx ──
+    # ── Step 2: 生成图表 + Excel ──
     chart_paths = generate_charts_by_sheet(data, output_dir, types=types)
     xlsx_path = export_xlsx(data, output_dir, types=types)
 
-    # ── Step 3: Report ──
+    # ── Step 3: 报告 ──
     from collections import Counter
     sheet_counts = Counter(it.sheet for it in data.prices)
     labor = [it for it in data.prices if it.category == "labor"]
@@ -270,8 +282,10 @@ def cmd_run(args: argparse.Namespace) -> None:
     print(f"  城市: {data.meta.city}")
     print(f"  时段: {data.meta.period}")
     print(f"  采集时间: {data.meta.collected_at}")
+    source_desc = f"{len(args.excel)} 个文件" if args.excel else f"自动抓取 ({data.meta.source})"
+    print(f"  数据来源: {source_desc}")
     print(f"")
-    print(f"  数据来源: {len(excel_paths)} 个文件, {len(sheet_counts)} 个 Sheet")
+    print(f"  Sheet 明细 ({len(sheet_counts)} 个):")
     for sn, cnt in sheet_counts.most_common():
         print(f"    - {sn}: {cnt} 条")
     print(f"")
@@ -284,9 +298,9 @@ def cmd_run(args: argparse.Namespace) -> None:
     print(f"  材料: {len(material)} 种")
     print(f"")
     print(f"  输出文件:")
-    print(f"    - JSON: {json_path}")
-    print(f"    - Excel: {xlsx_path}")
-    print(f"    - 图表: {len(chart_paths)} 张")
+    print(f"    JSON:  {json_path}")
+    print(f"    Excel: {xlsx_path}")
+    print(f"    图表:  {len(chart_paths)} 张")
     for p in chart_paths:
         print(f"      {p}")
     print(f"{'='*60}")
@@ -300,10 +314,10 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # === run (one-shot workflow) ===
-    p_run = subparsers.add_parser("run", help="一键执行: 导入 → 图表 → 报告")
+    p_run = subparsers.add_parser("run", help="抓取/分析 → 图表 → 报告")
     p_run.add_argument("--city", required=True, help="城市名称")
-    p_run.add_argument("--excel", required=True, nargs="+", help="Excel 文件路径")
-    p_run.add_argument("--period", help="月份，默认从文件自动识别")
+    p_run.add_argument("--period", required=True, help="时间段 (如: 2026-03 或 2025-01~2025-12)")
+    p_run.add_argument("--excel", nargs="+", help="已有 Excel 文件路径（不传则自动爬取）")
     p_run.add_argument("--types", help="逗号分隔的工种/材料名称（可选）")
     p_run.add_argument("--category", choices=["labor", "material"], help="按类别过滤")
     p_run.add_argument("--sheet", help="Sheet 名称（默认 all）")

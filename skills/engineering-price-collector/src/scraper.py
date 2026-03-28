@@ -48,10 +48,19 @@ def scrape_prices(
     downloaded = scraper.download_excels(year, months, download_dir)
 
     if not downloaded:
+        months_str = "、".join(f"{m}月" for m in months)
         raise RuntimeError(
-            f"未能下载任何 Excel 文件。\n"
-            f"请手动从 {scraper.SOURCE_NAME} ({scraper.BASE_URL}) 下载信息价文件，\n"
-            f"放到 {download_dir}/ 目录下，然后使用 import 命令导入。"
+            f"自动下载失败。请按以下步骤操作：\n"
+            f"\n"
+            f"Step 1: 用 web_search 搜索下载地址\n"
+            f"   搜索关键词: \"{city} {year}年{months_str} 工程造价信息价 下载\"\n"
+            f"\n"
+            f"Step 2: 用浏览器工具打开搜索到的页面，找到 Excel 下载链接并下载\n"
+            f"   参考网站: {scraper.SOURCE_NAME} {scraper.BASE_URL}\n"
+            f"   保存到: {download_dir}/\n"
+            f"\n"
+            f"Step 3: 下载完成后重新运行:\n"
+            f"   run --city {city} --period {year}-{months[0]:02d} --excel {download_dir}/<文件名>.xls"
         )
 
     print(f"\n[scrape] 已下载 {len(downloaded)} 个文件，开始解析...")

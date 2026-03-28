@@ -1,53 +1,65 @@
 # 工程信息价采集工具 (Engineering Price Collector)
 
-## Description
+## AI 调用方式
 
-从各省市造价信息网自动下载工程信息价 Excel 文件，智能分析表格结构，提取人工费和材料价格，按 Sheet 分组生成走势图和 Excel 汇总表。
-
-## Quick Start — AI 只需执行一条命令
+### 方式一：全自动（无 Excel，工具自己爬）
 
 ```bash
 bash /data/workspace/skills/engineering-price-collector/run.sh run \
-  --city "广州" \
-  --excel /data/workspace/skill-data/downloads/广州/2026-03_信息价.xls \
-  --output /data/workspace/skill-data
+  --city "广州" --period "2025-01~2025-12"
 ```
 
-一条命令完成全部流程：**导入全部 Sheet → 智能分类 → 生成图表 + Excel → 输出报告**
+工具自动从造价信息网下载 Excel → 解析 → 图表 → 报告
 
-### 可选参数
+### 方式二：AI 先用浏览器下载，再分析
+
+1. AI 用浏览器访问造价信息网，下载 Excel 到 `skill-data/downloads/<城市>/`
+2. 运行分析：
 
 ```bash
-# 只看人工
---category labor
-
-# 只看指定工种
---types "钢筋工,模板工,普工,一般抹灰工"
-
-# 多个月份文件一起导入
---excel 1月.xls 2月.xls 3月.xls
+bash /data/workspace/skills/engineering-price-collector/run.sh run \
+  --city "广州" --period "2026-03" \
+  --excel /data/workspace/skill-data/downloads/广州/2026年3月信息价.xls
 ```
+
+### 参数
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `--city` | 是 | 城市名称 |
+| `--period` | 是 | 时间段，如 `2026-03` 或 `2025-01~2025-12` |
+| `--excel` | 否 | 已有 Excel 路径（不传则自动爬取），支持多个文件 |
+| `--types` | 否 | 过滤工种，如 `钢筋工,模板工,普工` |
+| `--category` | 否 | `labor`(人工) 或 `material`(材料) |
 
 ## Output
 
 ```
 skill-data/
-├── downloads/<city>/                   # AI 自动下载 / 用户放入的原始 Excel
+├── downloads/<city>/               # 原始 Excel（自动下载或 AI 放入）
 └── prices/<city>/
-    ├── prices.json                     # 全量结构化数据
-    ├── prices_<city>_<period>.xlsx     # 多 Sheet Excel 汇总
-    └── charts/                         # ≤10 张图表
-        ├── <sheet>_人工.png            # 人工价格柱状图
-        └── <sheet>_材料分类.png        # 材料分类均价柱状图
+    ├── prices.json                  # 全量 JSON
+    ├── prices_<city>_<period>.xlsx  # 多 Sheet Excel 汇总
+    └── charts/                      # ~10 张图表
+        ├── <sheet>_人工.png         # 人工价格柱状图
+        └── <sheet>_材料分类.png     # 材料分类均价图
 ```
 
-## All Commands
+## 自动爬取失败时
 
-| Command | Description |
-|---------|-------------|
-| `run`     | **一键执行**: 导入 → 图表 → xlsx → 报告 |
-| `scrape`  | 从官网自动下载 Excel → 导入 → 报告 |
-| `analyze` | 分析 Excel 结构（调试用） |
-| `import`  | 仅导入数据 |
-| `chart`   | 仅生成图表 |
-| `query`   | 查询已有数据 |
+如果自动爬取报错，AI 应使用**内置浏览器工具**手动完成下载：
+
+1. 用浏览器工具搜索「<城市> 工程造价 信息价 <年月>」
+2. 访问对应的造价信息网站，找到 Excel 下载链接
+3. 下载文件到 `skill-data/downloads/<城市>/`
+4. 用 `--excel` 参数重新运行 `run` 命令
+
+> **注意**: AI 运行环境内置了浏览器工具（Browser Tool），可以直接访问网页、点击下载链接。不要让用户手动操作。
+
+## 数据源
+
+| 城市 | 网站 |
+|------|------|
+| 广州 | https://gc.gzcc.gov.cn |
+
+新增城市：在 `src/cities/` 下添加插件
