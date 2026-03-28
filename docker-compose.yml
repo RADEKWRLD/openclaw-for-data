@@ -3,6 +3,7 @@ services:
     image: coollabsio/openclaw:latest
     ports:
       - "${PORT:-8080}:${PORT:-8080}"
+      - "18789:18789"
     environment:
       # Provider (at least one required)
       #- ANTHROPIC_API_KEY=sk-ant-...
@@ -16,13 +17,17 @@ services:
       - BROWSER_CDP_URL=http://browser:9223
       - BROWSER_DEFAULT_PROFILE=openclaw
       - BROWSER_EVALUATE_ENABLED=true
+      # Performance
+      - NODE_COMPILE_CACHE=/var/tmp/openclaw-compile-cache
+      - OPENCLAW_NO_RESPAWN=1
+      - OPENCLAW_SILENT_PAIRING=true
       # Hooks (optional)
       # - HOOKS_ENABLED=true
       # - HOOKS_TOKEN=my-hook-secret
     volumes:
       - openclaw-data:/data
-      # Optional: custom JSON config for complex settings (groups, plugins, etc.)
-      # - ./my-openclaw.json:/app/config/openclaw.json
+      - ./my-openclaw.json:/app/config/openclaw.json
+      - ./patches/auth-BC0t_CEl.js:/opt/openclaw/app/dist/auth-BC0t_CEl.js:ro
     depends_on:
       - browser
     restart: unless-stopped

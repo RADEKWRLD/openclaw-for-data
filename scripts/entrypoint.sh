@@ -63,13 +63,11 @@ if [ -n "${OPENCLAW_DOCKER_APT_PACKAGES:-}" ]; then
     && rm -rf /var/lib/apt/lists/*
 fi
 
-# ── Require OPENCLAW_GATEWAY_TOKEN ───────────────────────────────────────────
+# ── OPENCLAW_GATEWAY_TOKEN (optional — if empty, gateway runs without token auth)
 if [ -z "${OPENCLAW_GATEWAY_TOKEN:-}" ]; then
-  echo "[entrypoint] ERROR: OPENCLAW_GATEWAY_TOKEN is required."
-  echo "[entrypoint] Generate one with: openssl rand -hex 32"
-  exit 1
+  echo "[entrypoint] OPENCLAW_GATEWAY_TOKEN not set — gateway will run without token auth."
 fi
-GATEWAY_TOKEN="$OPENCLAW_GATEWAY_TOKEN"
+GATEWAY_TOKEN="${OPENCLAW_GATEWAY_TOKEN:-}"
 
 # ── Require at least one AI provider API key env var ─────────────────────────
 # Providers always read API keys from env vars, never from JSON config.
