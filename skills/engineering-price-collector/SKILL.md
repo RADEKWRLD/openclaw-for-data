@@ -2,76 +2,52 @@
 
 ## Description
 
-从各省市造价信息网**自动下载**工程信息价 Excel 文件，智能分析表格结构，提取人工费和材料价格，按 Sheet 分组生成走势图和 Excel 汇总表。
+从各省市造价信息网自动下载工程信息价 Excel 文件，智能分析表格结构，提取人工费和材料价格，按 Sheet 分组生成走势图和 Excel 汇总表。
 
-## Workflow
-
-```
-用户输入(城市+时间段)
-  → scrape: AI 自动从官网下载 Excel → downloads/<city>/
-  → import: 自动分析表格结构 → prices.json
-  → chart: 按 Sheet 分组生成走势图 + Excel 汇总表
-```
-
-## Usage
+## Quick Start — AI 只需执行一条命令
 
 ```bash
-SKILL=/data/workspace/skills/engineering-price-collector/run.sh
-
-# 自动爬取（下载 Excel → 解析 → 存 JSON）
-bash $SKILL scrape --city "广州" --period "2025-01~2025-12"
-
-# 分析已有 Excel 文件结构
-bash $SKILL analyze --excel /data/workspace/skill-data/downloads/广州/2026-03_信息价.xls
-
-# 手动导入（所有 Sheet 全量导入）
-bash $SKILL import --city "广州" --sheet all \
-  --excel /data/workspace/skill-data/downloads/广州/2026-03_信息价.xls
-
-# 生成分组图表 + Excel
-bash $SKILL chart --city "广州"
-
-# 只看特定工种
-bash $SKILL chart --city "广州" --types "钢筋工,模板工,普工,一般抹灰工"
-
-# 查询数据
-bash $SKILL query --city "广州" --json
+bash /data/workspace/skills/engineering-price-collector/run.sh run \
+  --city "广州" \
+  --excel /data/workspace/skill-data/downloads/广州/2026-03_信息价.xls \
+  --output /data/workspace/skill-data
 ```
 
-## Sub-commands
+一条命令完成全部流程：**导入全部 Sheet → 智能分类 → 生成图表 + Excel → 输出报告**
 
-| Command | Description |
-|---------|-------------|
-| `scrape` | 从官网自动下载 Excel 到 downloads/ → 解析 → 存 JSON |
-| `analyze` | 分析 Excel 表格结构（Sheet、列、人工/材料类型） |
-| `import` | 从本地 Excel 导入（`--sheet all` 导入所有 Sheet） |
-| `chart`  | 按 Sheet 分组生成走势图（人工/材料分开，材料自动分页） |
-| `query`  | 查询已存储的数据 |
+### 可选参数
 
-## Output Structure
+```bash
+# 只看人工
+--category labor
+
+# 只看指定工种
+--types "钢筋工,模板工,普工,一般抹灰工"
+
+# 多个月份文件一起导入
+--excel 1月.xls 2月.xls 3月.xls
+```
+
+## Output
 
 ```
 skill-data/
-├── downloads/<city>/                   # AI 自动下载的原始 Excel
-│   ├── 2025-01_信息价.xls
-│   └── 2025-02_信息价.xls
+├── downloads/<city>/                   # AI 自动下载 / 用户放入的原始 Excel
 └── prices/<city>/
     ├── prices.json                     # 全量结构化数据
-    ├── prices_<city>_<period>.xlsx     # Excel 汇总（按原始 Sheet 分 Tab）
-    └── charts/
-        ├── 建筑安装_人工_trend.png
-        ├── 建筑安装_人工_comparison_2026-03.png
-        ├── 建筑安装_材料_trend.png
-        ├── 建筑安装_材料_trend_p2.png   # 材料超 20 条自动分页
-        ├── 市政_人工_trend.png
-        ├── 市政_材料_trend.png
-        └── ...
+    ├── prices_<city>_<period>.xlsx     # 多 Sheet Excel 汇总
+    └── charts/                         # ≤10 张图表
+        ├── <sheet>_人工.png            # 人工价格柱状图
+        └── <sheet>_材料分类.png        # 材料分类均价柱状图
 ```
 
-## Adding New City Support
+## All Commands
 
-在 `src/cities/` 下创建新文件，继承 `BaseCityScraper`，实现：
-- `get_download_page_url(year, month)` — 信息价下载页 URL
-- `find_excel_links(html, year, month)` — 从页面中解析 Excel 下载链接
-
-然后在 `src/cities/__init__.py` 中注册。
+| Command | Description |
+|---------|-------------|
+| `run`     | **一键执行**: 导入 → 图表 → xlsx → 报告 |
+| `scrape`  | 从官网自动下载 Excel → 导入 → 报告 |
+| `analyze` | 分析 Excel 结构（调试用） |
+| `import`  | 仅导入数据 |
+| `chart`   | 仅生成图表 |
+| `query`   | 查询已有数据 |
