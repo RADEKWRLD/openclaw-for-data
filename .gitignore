@@ -2,4 +2,13 @@ node_modules
 npm-debug.log*
 .env
 .DS_Store
+__pycache__/
 my-openclaw.json
+
+# Skill data — only keep directory structure in git, all data via Docker volume
+skill-data/**
+!skill-data/
+!skill-data/downloads/
+!skill-data/prices/
+!skill-data/downloads/.gitkeep
+!skill-data/prices/.gitkeep

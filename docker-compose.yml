@@ -31,6 +31,7 @@ services:
       - ./patches/auth-BC0t_CEl.js:/opt/openclaw/app/dist/auth-BC0t_CEl.js:ro
       - ./scripts/configure.js:/app/scripts/configure.js:ro
       - ./skills:/data/workspace/skills:ro
+      - ./skill-data:/data/workspace/skill-data
     depends_on:
       - browser
     restart: unless-stopped
