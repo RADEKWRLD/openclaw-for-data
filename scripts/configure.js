@@ -224,11 +224,11 @@ if (process.env.KIMI_API_KEY) {
   console.log("[configure] configuring Kimi Coding provider");
   ensure(config, "models", "providers");
   config.models.providers["kimi-coding"] = {
-    api: "anthropic-messages",
+    api: "openai-completions",
     apiKey: process.env.KIMI_API_KEY,
-    baseUrl: (process.env.KIMI_BASE_URL || "https://api.moonshot.ai/anthropic").replace(/\/+$/, ""),
+    baseUrl: (process.env.KIMI_BASE_URL || "https://api.moonshot.cn/v1").replace(/\/+$/, ""),
     models: [
-      { id: "k2p5", name: "Kimi K2P5", contextWindow: 128000 },
+      { id: "kimi-k2.5", name: "Kimi K2.5", contextWindow: 262144 },
     ],
   };
 } else {
@@ -334,7 +334,7 @@ const primaryCandidates = [
   [process.env.CEREBRAS_API_KEY,       "cerebras/llama-3.3-70b"],
   [process.env.VENICE_API_KEY,         "venice/llama-3.3-70b"],
   [process.env.MOONSHOT_API_KEY,       "moonshot/kimi-k2.5"],
-  [process.env.KIMI_API_KEY,           "kimi-coding/k2p5"],
+  [process.env.KIMI_API_KEY,           "kimi-coding/kimi-k2.5"],
   [process.env.MINIMAX_API_KEY,        "minimax/MiniMax-M2.1"],
   [process.env.SYNTHETIC_API_KEY,      "synthetic/hf:MiniMaxAI/MiniMax-M2.1"],
   [process.env.ZAI_API_KEY,            "zai/glm-4.7"],
