@@ -1,65 +1,64 @@
-# 工程信息价采集工具 (Engineering Price Collector)
+---
+name: engineering-price-collector
+description: "采集各省市工程造价信息价（人工费、材料价格）。用于：用户询问工程信息价、造价信息、人工费、材料价格、价格走势时触发。自动从造价信息网下载 Excel 或解析已有文件，生成 JSON + 图表 + Excel 汇总报告。"
+metadata:
+  {"openclaw": {"emoji": "🏗️", "requires": {"bins": ["python3"]}}}
+---
 
-## AI 调用方式
+# 工程信息价采集工具
 
-### 方式一：全自动（无 Excel，工具自己爬）
+## 使用流程
+
+### 1. 获取数据
+
+如果用户没有提供 Excel 文件，先用 web_search 搜索并用 browser 下载：
+
+- 搜索关键词：「<城市> <年月> 工程造价信息价 下载」
+- 下载 Excel 文件，**保存到 `{baseDir}/../../skill-data/downloads/<城市>/` 目录**（容器内路径：`/data/workspace/skill-data/downloads/<城市>/`）
+
+### 2. 运行分析
 
 ```bash
-bash /data/workspace/skills/engineering-price-collector/run.sh run \
-  --city "广州" --period "2025-01~2025-12"
+bash {baseDir}/run.sh run \
+  --city "<城市>" \
+  --period "<时间段>" \
+  --excel /data/workspace/skill-data/downloads/<城市>/<文件名>.xls
 ```
 
-工具自动从造价信息网下载 Excel → 解析 → 图表 → 报告
-
-### 方式二：AI 先用浏览器下载，再分析
-
-1. AI 用浏览器访问造价信息网，下载 Excel 到 `skill-data/downloads/<城市>/`
-2. 运行分析：
-
-```bash
-bash /data/workspace/skills/engineering-price-collector/run.sh run \
-  --city "广州" --period "2026-03" \
-  --excel /data/workspace/skill-data/downloads/广州/2026年3月信息价.xls
-```
+无 `--excel` 时工具会尝试自动爬取，失败后会提示搜索下载。
 
 ### 参数
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `--city` | 是 | 城市名称 |
+| `--city` | 是 | 城市名称，如「广州」 |
 | `--period` | 是 | 时间段，如 `2026-03` 或 `2025-01~2025-12` |
-| `--excel` | 否 | 已有 Excel 路径（不传则自动爬取），支持多个文件 |
+| `--excel` | 否 | Excel 文件路径，支持多个文件空格分隔 |
 | `--types` | 否 | 过滤工种，如 `钢筋工,模板工,普工` |
 | `--category` | 否 | `labor`(人工) 或 `material`(材料) |
 
-## Output
+### 输出
 
+所有输出保存在 `/data/workspace/skill-data/prices/<城市>/`：
+
+- `prices.json` — 全量结构化数据
+- `prices_<城市>_<时段>.xlsx` — 多 Sheet Excel 汇总表
+- `charts/<Sheet>_人工.png` — 人工价格柱状图
+- `charts/<Sheet>_材料分类.png` — 材料分类均价图
+
+### 示例
+
+```bash
+# 单月
+bash {baseDir}/run.sh run --city "广州" --period "2026-03" \
+  --excel /data/workspace/skill-data/downloads/广州/2026年3月信息价.xls
+
+# 多月
+bash {baseDir}/run.sh run --city "广州" --period "2025-01~2025-12" \
+  --excel /data/workspace/skill-data/downloads/广州/1月.xls \
+         /data/workspace/skill-data/downloads/广州/2月.xls
+
+# 只看人工
+bash {baseDir}/run.sh run --city "广州" --period "2026-03" --category labor \
+  --excel /data/workspace/skill-data/downloads/广州/2026年3月信息价.xls
 ```
-skill-data/
-├── downloads/<city>/               # 原始 Excel（自动下载或 AI 放入）
-└── prices/<city>/
-    ├── prices.json                  # 全量 JSON
-    ├── prices_<city>_<period>.xlsx  # 多 Sheet Excel 汇总
-    └── charts/                      # ~10 张图表
-        ├── <sheet>_人工.png         # 人工价格柱状图
-        └── <sheet>_材料分类.png     # 材料分类均价图
-```
-
-## 自动爬取失败时
-
-如果自动爬取报错，AI 应使用**内置浏览器工具**手动完成下载：
-
-1. 用浏览器工具搜索「<城市> 工程造价 信息价 <年月>」
-2. 访问对应的造价信息网站，找到 Excel 下载链接
-3. 下载文件到 `skill-data/downloads/<城市>/`
-4. 用 `--excel` 参数重新运行 `run` 命令
-
-> **注意**: AI 运行环境内置了浏览器工具（Browser Tool），可以直接访问网页、点击下载链接。不要让用户手动操作。
-
-## 数据源
-
-| 城市 | 网站 |
-|------|------|
-| 广州 | https://gc.gzcc.gov.cn |
-
-新增城市：在 `src/cities/` 下添加插件
